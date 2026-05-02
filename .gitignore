@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Data
+datasets/
+data/
+VisDrone*/
+*.zip
+
+# Training outputs
+runs/
+outputs/
+weights/
+*.pt
+*.onnx
+*.engine
+
+# Videos/images generated locally
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# System/editor
+.DS_Store
+.vscode/
+.idea/
