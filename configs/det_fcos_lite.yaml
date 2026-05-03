@@ -1,0 +1,9 @@
+model: FCOS-lite from-scratch detector
+dataset: VisDrone2019-DET
+img_size: 640
+batch_size: 8
+epochs: 50
+optimizer: AdamW
+lr: 0.0002
+notes: Educational portfolio config. Uses custom PyTorch model, FPN, focal loss, FCOS-style assignment.
+

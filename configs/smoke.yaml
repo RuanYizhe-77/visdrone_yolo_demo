@@ -1,0 +1,5 @@
+img_size: 320
+batch_size: 2
+max_samples: 8
+purpose: Quick dataset/forward/loss/checkpoint/inference validation before real training.
+

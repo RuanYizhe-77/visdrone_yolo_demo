@@ -1,152 +1,202 @@
-# VisDrone Tiny Center Detector
+# VisDrone Detection, Tracking, and Deployment Demo
 
-This is an interview-oriented local demo, not a production detection system.
+This is a GitHub-ready, learning-oriented computer vision project for VisDrone. It is not a production detector and it does not claim state-of-the-art results.
 
-The project implements a compact anchor-free object detector for VisDrone in plain PyTorch. It is similar in spirit to CenterNet: an input image passes through a small CNN backbone, then three heads predict class center heatmaps, bounding-box width/height, and center offsets. Predictions are decoded into boxes, filtered with NMS, evaluated with simplified metrics, visualized on images/videos, tracked with a simple IoU tracker, and exportable to ONNX.
+The project demonstrates:
 
-No Ultralytics, YOLO framework, MMDetection, Detectron2, or pretrained detection library is used.
+- object detection training on VisDrone-DET with a custom PyTorch detector
+- video detection and tracking on VisDrone-VID
+- annotation and prediction visualizations
+- optional side-by-side comparison with a pretrained YOLO baseline
+- ONNX export and inference speed benchmarking
+- beginner-friendly notes on detection, tracking, metrics, and deployment
 
-## Why This Demo Exists
+## What Is Implemented From Scratch
 
-The goal is not state-of-the-art accuracy. The goal is to show the main mechanics of object detection training and deployment-oriented computer vision engineering in readable code:
+The main detector is an educational FCOS-lite style anchor-free model:
 
-- heatmap target generation
-- bounding-box regression
-- train and validation loops
-- NMS-based decoding
-- image and video inference
-- basic online tracking
-- FPS and latency reporting
-- ONNX export awareness
+- ResNet-like CNN backbone
+- FPN feature pyramid for small objects
+- classification, box regression, and centerness heads
+- FCOS-style point assignment
+- focal loss, GIoU box loss, and centerness loss
+- NMS decoding
+- simplified AP50 / precision / recall evaluation
 
-VisDrone is useful because it contains dense small objects from drone viewpoints, which makes it a practical dataset for detection and video CV demonstrations.
+High-level training frameworks such as Ultralytics YOLO, MMDetection, and Detectron2 are not used for the custom training pipeline.
 
-## Setup
+## Dataset Layout
 
-Create or use your existing Python environment, then install the small dependency set:
-
-```bash
-pip install -r requirements.txt
-```
-
-Do not install Ultralytics for this project.
-
-## Dataset Structure
-
-The dataset discovery utility searches under `--data-root` for official VisDrone detection folders:
-
-```text
-VisDrone2019-DET-train/
-  images/
-  annotations/
-VisDrone2019-DET-val/
-  images/
-  annotations/
-```
-
-It also supports the converted local layout found in this repository:
+The code discovers the official VisDrone folders under `--data-root`:
 
 ```text
 datasets/VisDrone/
-  images/train/
-  images/val/
-  labels/train/
-  labels/val/
+  VisDrone-DET/
+    VisDrone2019-DET-train/
+      images/
+      annotations/
+    VisDrone2019-DET-val/
+      images/
+      annotations/
+  VisDrone-VID/
+    VisDrone2019-VID-train/
+      sequences/
+      annotations/
+    VisDrone2019-VID-val/
+      sequences/
+      annotations/
 ```
 
-Official VisDrone annotations are expected as:
+VisDrone-DET annotation format:
 
 ```text
 bbox_left,bbox_top,bbox_width,bbox_height,score,object_category,truncation,occlusion
 ```
 
-Categories `1` through `10` are mapped to class indices `0` through `9`. Categories `0` and `11` are ignored.
+VisDrone-VID annotation format:
+
+```text
+frame_index,target_id,bbox_left,bbox_top,bbox_width,bbox_height,score,object_category,truncation,occlusion
+```
+
+Categories `1-10` are mapped to class IDs `0-9`. Categories outside that range are ignored.
+
+## Setup
+
+Use your existing environment. On this server, GPU training should use:
+
+```bash
+source activate cat-sam
+```
+
+Core dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+YOLO comparison is optional. If `ultralytics` is not installed, `scripts/yolo_compare.py` exits with a clear message.
+
+## Smoke Test
+
+Run this before real training:
+
+```bash
+python scripts/smoke_test.py --data-root . --device cuda --img-size 320 --output-dir outputs/runs/smoke_rebuild
+```
+
+It checks dataset discovery, one batch load, one forward pass, loss/backward, checkpoint saving, and one prediction visualization.
+
+## Dataset Visualization
+
+```bash
+python scripts/visualize_det.py --data-root . --split train --num-samples 12 --output-dir assets/annotations
+```
 
 ## Training
 
+Full 50-epoch training:
+
 ```bash
-python train.py --data-root . --epochs 5 --batch-size 8 --img-size 512 --device cuda
+python scripts/train_det.py \
+  --data-root . \
+  --epochs 50 \
+  --batch-size 8 \
+  --img-size 640 \
+  --device cuda \
+  --num-workers 4 \
+  --run-dir outputs/runs/det_fcos_lite_50e
 ```
 
 Outputs:
 
-- `checkpoints/best.pt`
-- `checkpoints/last.pt`
-- `outputs/train_log.csv`
-
-Use `--max-samples` for a quick smoke run:
-
-```bash
-python train.py --data-root . --epochs 1 --batch-size 2 --img-size 256 --device cpu --max-samples 8
+```text
+outputs/runs/det_fcos_lite_50e/
+  checkpoints/last.pt
+  checkpoints/best.pt
+  logs/train_log.csv
+  curves/loss_curve.png
+  metrics/val_metrics.json
 ```
 
-## Validation
+## Evaluation
 
 ```bash
-python val.py --data-root . --weights checkpoints/best.pt --device cuda
+python scripts/eval_det.py \
+  --data-root . \
+  --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt \
+  --device cuda \
+  --output-json outputs/runs/det_fcos_lite_50e/metrics/val_metrics.json
 ```
 
-Outputs:
-
-- `outputs/val_metrics.json`
-
-Metrics include precision, recall, and an approximate mAP50. This is not a COCO-style evaluator.
+The evaluator reports precision, recall, and simplified AP50/mAP50. This is not the official VisDrone evaluator.
 
 ## Image Inference
 
 ```bash
-python infer_image.py --weights checkpoints/best.pt --source path/to/image.jpg --device cuda
+python scripts/infer_images.py \
+  --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt \
+  --source datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-val/images \
+  --device cuda \
+  --output-dir assets/predictions
 ```
 
-Folder input is also supported. Visualizations are saved to `outputs/images`.
-
-## Video Inference
+## Video Tracking
 
 ```bash
-python infer_video.py --weights checkpoints/best.pt --source path/to/video.mp4 --device cuda
+python scripts/track_vid.py \
+  --data-root . \
+  --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt \
+  --split val \
+  --device cuda \
+  --max-frames 300 \
+  --output-dir assets/tracking
 ```
 
-The script saves `outputs/video_detected.mp4` and prints frame count, average inference time, and FPS.
+Tracking uses a simple class-aware IoU tracker. It is useful for learning tracking-by-detection, but it is not full ByteTrack.
 
-## Tracking
+## YOLO Baseline Comparison
+
+This script is optional and isolated from the custom training pipeline:
 
 ```bash
-python track_video.py --weights checkpoints/best.pt --source path/to/video.mp4 --device cuda
+python scripts/yolo_compare.py \
+  --ours-weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt \
+  --yolo-weights yolov8n.pt \
+  --source datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-val/images \
+  --device cuda \
+  --output-dir assets/comparisons
 ```
 
-Tracking uses `SimpleIoUTracker`, a small online IoU-based tracker. It is ByteTrack-lite style in spirit but is not the full ByteTrack algorithm.
+## Benchmark
+
+```bash
+python scripts/benchmark.py \
+  --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt \
+  --img-size 640 \
+  --batch-size 1 \
+  --device cuda \
+  --output-json outputs/runs/det_fcos_lite_50e/metrics/benchmark.json
+```
 
 ## ONNX Export
 
 ```bash
-python export_onnx.py --weights checkpoints/best.pt
+python scripts/export_onnx.py \
+  --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt \
+  --img-size 640 \
+  --output outputs/runs/det_fcos_lite_50e/export/model.onnx
 ```
 
-The exported model is saved to `outputs/model.onnx`. If export fails because the environment lacks ONNX support, the script prints a helpful message.
+## Documentation
 
-## Implemented From Scratch
-
-- compact CNN detector
-- heatmap, width/height, and offset heads
-- VisDrone target generation
-- detection loss
-- decoding and NMS
-- simplified validation metrics
-- image/video inference loops
-- IoU tracker
-- ONNX export wrapper
-
-## Not Implemented
-
-- pretrained detection backbones
-- anchor assignment
-- YOLO-specific training or decoding
-- COCO mAP evaluator
-- multi-scale training
-- advanced augmentation
-- TensorRT/OpenVINO deployment
-- production async video pipeline
+- [Beginner Guide](docs/beginner_guide.md): object detection, VisDrone formats, mAP, video tracking, IDs, and deployment basics.
+- [Deployment Notes](docs/deployment_notes.md): ONNX, TensorRT, FP16/INT8, FPS/latency, and production pipeline structure.
 
 ## Limitations
 
-This model is intentionally small and simple. It uses a stride-4 feature map and center-cell targets, so accuracy on dense small objects will be limited. The AP50 calculation is a simplified confidence-sorted approximation. The tracker matches boxes by IoU and class only, so identity switches are expected in crowded scenes.
+- This is a portfolio and learning demo.
+- The detector is custom and compact; it should not be compared to production-grade YOLO/RT-DETR systems as an equal model.
+- The mAP implementation is simplified and intended for educational feedback.
+- The IoU tracker can switch IDs during occlusions and crowded motion.
+- YOLO is used only as an off-the-shelf comparison baseline, not as the custom training framework.
