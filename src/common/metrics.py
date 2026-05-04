@@ -14,6 +14,8 @@ def average_precision(recalls, precisions):
 def evaluate_map50(predictions, targets, num_classes=10, iou_thresh=0.5):
     total_tp = total_fp = total_fn = 0
     aps, per_class = [], []
+    total_predictions = sum(int(len(pred["boxes"])) for pred in predictions)
+    total_targets = sum(int(len(target["boxes"])) for target in targets)
     for cls in range(num_classes):
         preds, gt_by_image = [], {}
         for image_id, (pred, target) in enumerate(zip(predictions, targets)):
@@ -61,7 +63,10 @@ def evaluate_map50(predictions, targets, num_classes=10, iou_thresh=0.5):
         "precision": total_tp / max(total_tp + total_fp, 1),
         "recall": total_tp / max(total_tp + total_fn, 1),
         "mAP50_approx": float(np.mean(aps)),
+        "num_images": len(predictions),
+        "num_predictions": int(total_predictions),
+        "num_targets": int(total_targets),
+        "avg_predictions_per_image": total_predictions / max(len(predictions), 1),
         "per_class": per_class,
         "note": "Simplified AP50 evaluator for learning/demo use, not official VisDrone or COCO mAP.",
     }
-

@@ -1,52 +1,32 @@
 # Codex Handoff
 
-## 1. Original Goals And Constraints
+## Goals And Constraints
 
-Goals:
+- Build a GitHub-ready VisDrone detection/tracking demo.
+- Keep custom training low-level PyTorch only; do not use Ultralytics/MMDetection/Detectron2 for custom training.
+- Use Ultralytics only to load/run the pretrained VisDrone YOLO reference.
+- Preserve the old 50-epoch baseline for comparison.
+- Final presentation should compare: pretrained VisDrone YOLO, newer custom P2 model, old 50-epoch model.
+- Operate only inside this repository.
+- Do not delete datasets, checkpoints, or generated comparison assets.
 
-- Rebuild the VisDrone demo into a GitHub-ready project.
-- Cover VisDrone-DET image object detection training/evaluation/inference.
-- Cover VisDrone-VID video detection and tracking.
-- Generate visual GitHub assets: annotation samples, prediction images, tracking videos, curves, and comparison outputs.
-- Compare the custom trained detector with an optional off-the-shelf pretrained YOLO baseline.
-- Add deployment-oriented pieces: ONNX export, speed benchmark, TensorRT/GPU/FP16 discussion.
-- Add beginner-friendly technical docs for detection, metrics, tracking, video CV, and deployment.
-
-Constraints:
-
-- Do not use Ultralytics YOLO, MMDetection, Detectron2, or other high-level detection training frameworks for the custom model.
-- PyTorch, torchvision, OpenCV, NumPy, tqdm, matplotlib are allowed.
-- YOLO is allowed only as an optional pretrained comparison baseline.
-- Keep code educational and readable.
-- Work only inside this repository.
-- Do not delete datasets, checkpoints, or important existing outputs.
-- Use `cat-sam` for GPU training.
-
-## 2. Current Repo Structure
-
-Important current structure:
+## Current Repo Structure
 
 ```text
 configs/
-  det_fcos_lite.yaml
-  smoke.yaml
-
+  current_yolo_newerbest_oldest.json
+  current_yolo_newerbest_oldest_stable_tracking.json
 docs/
+  CODEX_HANDOFF.md
   beginner_guide.md
   deployment_notes.md
-  CODEX_HANDOFF.md
-
 scripts/
-  benchmark.py
-  eval_det.py
-  export_onnx.py
-  infer_images.py
-  smoke_test.py
-  track_vid.py
   train_det.py
-  visualize_det.py
-  yolo_compare.py
-
+  eval_det.py
+  infer_images.py
+  track_vid.py
+  run_final_comparison_suite.py
+  sweep_eval.py
 src/
   common/
   engine/
@@ -54,307 +34,151 @@ src/
   tracking/
   visdrone/
   visualization/
-
-datasets/VisDrone/
-  VisDrone-DET/
-  VisDrone-VID/
-
+models/pretrained/
+  yolov11s_visdrone_risef_best.pt
 outputs/runs/
-  smoke_rebuild/
   det_fcos_lite_50e/
+  fcos_p2_small_softplus_norm_180e/
+assets/
+  current_yolo_newerbest_oldest/
+  presentation_tracking_comparison/
+  presentation_tracking_comparison_uav0000268_late/
+  presentation_tracking_comparison_uav0000305/
+  presentation_tracking_comparison_uav0000305_highthr/
 ```
 
-Legacy files from the previous CenterNet-style demo still exist at repo root and under `src/`.
+Generated assets, datasets, checkpoints, and videos are ignored by Git.
 
-## 3. Files Created Or Modified
+## Files Created Or Modified
 
-Created:
+Important created files:
 
-- `configs/det_fcos_lite.yaml`
-- `configs/smoke.yaml`
-- `docs/beginner_guide.md`
-- `docs/deployment_notes.md`
-- `docs/CODEX_HANDOFF.md`
-- `scripts/benchmark.py`
-- `scripts/eval_det.py`
-- `scripts/export_onnx.py`
-- `scripts/infer_images.py`
-- `scripts/smoke_test.py`
-- `scripts/track_vid.py`
-- `scripts/train_det.py`
-- `scripts/visualize_det.py`
-- `scripts/yolo_compare.py`
-- `src/common/boxes.py`
-- `src/common/checkpoint.py`
-- `src/common/metrics.py`
-- `src/common/seed.py`
-- `src/engine/benchmark.py`
-- `src/engine/evaluate.py`
-- `src/engine/infer.py`
-- `src/engine/train.py`
-- `src/modeling/assigner.py`
-- `src/modeling/backbone.py`
-- `src/modeling/decode.py`
-- `src/modeling/detector.py`
-- `src/modeling/fpn.py`
-- `src/modeling/losses.py`
-- `src/tracking/iou_tracker.py`
-- `src/visdrone/classes.py`
-- `src/visdrone/det_dataset.py`
-- `src/visdrone/discovery.py`
-- `src/visdrone/vid_dataset.py`
-- `src/visualization/draw.py`
-- `src/visualization/plots.py`
+- `configs/current_yolo_newerbest_oldest.json`
+- `configs/current_yolo_newerbest_oldest_stable_tracking.json`
+- `scripts/run_final_comparison_suite.py`
+- `scripts/sweep_eval.py`
+- `src/tracking/bytetrack_lite.py`
+- `src/engine/yolo_infer.py`
+- `assets/current_yolo_newerbest_oldest/`
+- `assets/presentation_tracking_comparison/`
+- `assets/presentation_tracking_comparison_uav0000305/`
+- `assets/presentation_tracking_comparison_uav0000305_highthr/`
 
-Modified:
+Important modified files:
 
 - `README.md`
-- `requirements.txt`
-- `report.md` was already modified from the previous run.
+- `report.md`
+- `.gitignore`
+- `scripts/train_det.py`
+- `scripts/eval_det.py`
+- `scripts/infer_images.py`
+- `scripts/track_vid.py`
+- `scripts/benchmark.py`
+- `scripts/export_onnx.py`
+- `scripts/run_comparison_suite.py`
+- `scripts/run_final_comparison_suite.py`
+- `src/engine/train.py`
+- `src/engine/evaluate.py`
+- `src/modeling/*`
+- `src/visualization/draw.py`
 
-Generated during tests/training:
+## Implemented
 
-- `outputs/runs/smoke_rebuild/checkpoints/smoke.pt`
-- `outputs/runs/smoke_rebuild/predictions/...`
-- `outputs/runs/det_fcos_lite_50e/checkpoints/last.pt`
-- `outputs/runs/det_fcos_lite_50e/checkpoints/best.pt`
-- `outputs/runs/det_fcos_lite_50e/logs/train_log.csv`
-- `outputs/runs/det_fcos_lite_50e/curves/loss_curve.png`
-- Python `__pycache__/` files in new module folders.
+- FCOS-style detector with optional P2 stride-4 feature level.
+- Softplus regression head and stride-normalized box distances.
+- Aligned GIoU loss to avoid large pairwise IoU memory use.
+- Classwise, agnostic, and classwise-then-agnostic NMS.
+- ByteTrack-style tracker and stable demo tracker.
+- Final comparison suite:
+  - image grids
+  - tracking videos
+  - score CSV/JSON
+  - benchmark support
+  - Markdown report
+- High-contrast comparison video labels.
+- Stricter ByteTrack presentation render for `uav0000305_00000_v`.
+- Presentation README and concise final report.
 
-## 4. What Has Been Implemented
+## Tested
 
-- Official VisDrone-DET discovery and dataset loading.
-- Official VisDrone-VID sequence discovery and annotation parsing.
-- Custom FCOS-lite anchor-free detector:
-  - small ResNet-like backbone
-  - FPN
-  - classification, bbox regression, centerness heads
-  - point-based FCOS-style assignment
-  - focal loss, GIoU loss, centerness loss
-  - NMS decoding
-- Training engine with checkpoints, CSV logs, and loss curve.
-- Evaluation engine with simplified AP50/precision/recall.
-- Image inference and visualization.
-- DET annotation visualization script.
-- VID tracking script with simple class-aware IoU tracking.
-- Inference speed benchmark script.
-- ONNX export script.
-- Optional YOLO comparison script that gracefully exits if `ultralytics` is unavailable.
-- Beginner guide and deployment notes.
-- GitHub-ready README draft with reproduction commands.
+- Syntax compile:
+  - `scripts/run_final_comparison_suite.py`
+  - `scripts/run_comparison_suite.py`
+  - `scripts/train_det.py`
+  - `src/engine/train.py`
+  - `src/engine/evaluate.py`
+  - `src/visualization/draw.py`
+- Generated full image/score comparison:
+  - `assets/current_yolo_newerbest_oldest/`
+  - 548 image grids
+- Generated tracking videos:
+  - `assets/presentation_tracking_comparison/tracking/uav0000268_05773_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4`
+  - `assets/presentation_tracking_comparison_uav0000268_late/tracking/uav0000268_05773_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4`
+  - `assets/presentation_tracking_comparison_uav0000305/tracking/uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4`
+  - `assets/presentation_tracking_comparison_uav0000305_highthr/tracking/uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4`
+- Verified generated MP4s open with OpenCV:
+  - `uav0000268_05773_v`: 300 frames, 20 FPS, 3840x720
+  - `uav0000268_05773_v` later segment: 300 frames, 20 FPS, 3840x720
+  - `uav0000305_00000_v`: 184 frames, 20 FPS, 3840x720
+  - `uav0000305_00000_v` high threshold: 184 frames, 20 FPS, 3840x720
+- Compared `uav0000305_00000_v` track counts:
+  - lower-threshold newer model: 11915 rows, 1590 unique IDs
+  - high-threshold newer model: 4350 rows, 309 unique IDs
+- Stopped the parallel training search PIDs:
+  - `3069730`
+  - `3074315`
+  - `3076632`
+  - `3076798`
+  - `3076868`
+  - `3080276`
 
-## 5. What Has Been Tested
+## Final Scores
 
-Tested successfully in `cat-sam`:
+From `assets/current_yolo_newerbest_oldest/scores/metrics_summary.csv`:
 
-- Python syntax check for new scripts/modules.
-- Dataset discovery for DET and VID.
-- DET dataset load.
-- One FCOS-lite forward pass.
-- Loss computation and backward pass.
-- Optimizer step.
-- Smoke checkpoint saving.
-- One prediction visualization from smoke model.
-- 50-epoch training has started and is actively running.
+| model | precision | recall | mAP50 approx | boxes/image |
+| --- | ---: | ---: | ---: | ---: |
+| pretrained_yolo | 0.6971 | 0.4957 | 0.2960 | 50.30 |
+| newerbest_p2_small | 0.4041 | 0.4796 | 0.2211 | 83.94 |
+| oldest_50epoch | 0.2823 | 0.2504 | 0.0593 | 62.74 |
 
-Not yet tested after full training:
+## Important Commands Run
 
-- Full validation on `outputs/runs/det_fcos_lite_50e/checkpoints/last.pt`.
-- Final image prediction gallery.
-- VID tracking video output.
-- Benchmark output.
-- ONNX export for the new FCOS-lite model.
-- YOLO comparison output.
-
-## 6. Exact Commands Already Run
-
-Inspection:
-
-```bash
-pwd
-git status --short
-find . -maxdepth 3 -type d | sort
-find . -maxdepth 2 -type f | sort
-find datasets/VisDrone -maxdepth 5 -type d | sort
-find datasets/VisDrone/VisDrone-VID -maxdepth 5 -type d | sort | sed -n '1,200p'
-find datasets/VisDrone/VisDrone-DET -maxdepth 3 -type d | sort
-find datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-train/images -type f | wc -l
-find datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-val/images -type f | wc -l
-find datasets/VisDrone/VisDrone-VID/VisDrone2019-VID-train/sequences -mindepth 1 -maxdepth 1 -type d | wc -l
-find datasets/VisDrone/VisDrone-VID/VisDrone2019-VID-val/sequences -mindepth 1 -maxdepth 1 -type d | wc -l
-sed -n '1,5p' datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-train/annotations/0000047_02500_d_0000093.txt
-sed -n '1,8p' datasets/VisDrone/VisDrone-VID/VisDrone2019-VID-val/annotations/uav0000086_00000_v.txt
-```
-
-Directory creation:
-
-```bash
-mkdir -p configs src/visdrone src/modeling src/engine src/tracking src/visualization src/utils scripts docs assets/annotations assets/predictions assets/comparisons assets/tracking assets/curves outputs/runs checkpoints/det_fcos_lite checkpoints/legacy
-```
-
-Syntax check:
+Final full comparison:
 
 ```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python -m py_compile scripts/smoke_test.py scripts/train_det.py scripts/eval_det.py scripts/infer_images.py scripts/track_vid.py scripts/benchmark.py scripts/export_onnx.py scripts/yolo_compare.py src/visdrone/classes.py src/visdrone/discovery.py src/visdrone/det_dataset.py src/visdrone/vid_dataset.py src/modeling/backbone.py src/modeling/fpn.py src/modeling/detector.py src/modeling/assigner.py src/modeling/losses.py src/modeling/decode.py src/engine/train.py src/engine/evaluate.py src/engine/infer.py src/engine/benchmark.py src/tracking/iou_tracker.py src/visualization/draw.py src/visualization/plots.py src/utils/boxes.py src/utils/checkpoint.py src/utils/metrics.py src/utils/seed.py
+/home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/run_final_comparison_suite.py --data-root . --custom-specs configs/current_yolo_newerbest_oldest.json --yolo-weights models/pretrained/yolov11s_visdrone_risef_best.pt --output-dir assets/current_yolo_newerbest_oldest --device cuda:0 --img-size 640 --conf 0.35 --eval-conf 0.25 --batch-size 32 --num-workers 4 --max-images 0 --max-frames 300 --max-detections 120 --agnostic-nms-iou 0.6 --track-low-conf 0.08 --new-track-conf 0.45 --yolo-first --skip-benchmarks
 ```
 
-Smoke test attempts:
+Presentation tracking videos:
 
 ```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/smoke_test.py --data-root . --device cuda --img-size 320 --output-dir outputs/runs/smoke_rebuild
+/home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/run_final_comparison_suite.py --data-root . --custom-specs configs/current_yolo_newerbest_oldest.json --yolo-weights models/pretrained/yolov11s_visdrone_risef_best.pt --output-dir assets/presentation_tracking_comparison --device cuda:0 --img-size 640 --conf 0.35 --eval-conf 0.25 --batch-size 32 --num-workers 4 --video-split val --sequence uav0000268_05773_v --max-frames 300 --max-detections 80 --agnostic-nms-iou 0.6 --track-low-conf 0.12 --new-track-conf 0.45 --track-iou 0.25 --video-max-width 3840 --yolo-first --skip-images --skip-scores --skip-benchmarks --no-progress
 ```
-
-This was run three times:
-
-- First failed: script could not import `src` from `scripts/`.
-- Second failed: legacy `src/utils.py` conflicted with new `src/utils/` package.
-- Third passed after adding script path bootstraps and moving new helpers to `src/common/`.
-
-Training command currently running:
 
 ```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/train_det.py --data-root . --epochs 50 --batch-size 8 --img-size 640 --device cuda --num-workers 4 --run-dir outputs/runs/det_fcos_lite_50e --eval-every 0
+/home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/run_final_comparison_suite.py --data-root . --custom-specs configs/current_yolo_newerbest_oldest.json --yolo-weights models/pretrained/yolov11s_visdrone_risef_best.pt --output-dir assets/presentation_tracking_comparison_uav0000305 --device cuda:0 --img-size 640 --conf 0.35 --eval-conf 0.25 --batch-size 32 --num-workers 4 --video-split val --sequence uav0000305_00000_v --max-frames 184 --max-detections 80 --agnostic-nms-iou 0.6 --track-low-conf 0.12 --new-track-conf 0.45 --track-iou 0.25 --video-max-width 3840 --yolo-first --skip-images --skip-scores --skip-benchmarks --no-progress
 ```
-
-Log/status commands run during training:
 
 ```bash
-tail -n 5 outputs/runs/det_fcos_lite_50e/logs/train_log.csv
-tail -n 8 outputs/runs/det_fcos_lite_50e/logs/train_log.csv
-tail -n 12 outputs/runs/det_fcos_lite_50e/logs/train_log.csv
-find outputs/runs/det_fcos_lite_50e -maxdepth 3 -type f | sort | sed -n '1,80p'
-git status --short
-find configs docs scripts src/visdrone src/modeling src/engine src/tracking src/visualization src/common -maxdepth 2 -type f | sort
+/home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/run_final_comparison_suite.py --data-root . --custom-specs configs/current_yolo_newerbest_oldest.json --yolo-weights models/pretrained/yolov11s_visdrone_risef_best.pt --output-dir assets/presentation_tracking_comparison_uav0000305_highthr --device cuda:0 --img-size 640 --conf 0.50 --eval-conf 0.25 --batch-size 32 --num-workers 4 --video-split val --sequence uav0000305_00000_v --max-frames 184 --max-detections 60 --agnostic-nms-iou 0.55 --track-low-conf 0.25 --new-track-conf 0.70 --track-iou 0.25 --video-max-width 3840 --yolo-first --skip-images --skip-scores --skip-benchmarks --no-progress
 ```
 
-## 7. Current Training/Evaluation Status
-
-Current long training process:
-
-- Session ID in Codex tool: `98590`.
-- Command: 50 epochs, batch size 8, image size 640, CUDA, `cat-sam`.
-- Current observed live status: epoch `20/50`, around `25%` complete.
-- Latest completed CSV epoch: epoch `19`.
-- Latest completed epoch loss: `0.9923857073259295`.
-- Loss trend:
-
-```text
-epoch 1:  1.6359
-epoch 5:  1.2290
-epoch 10: 1.1159
-epoch 15: 1.0434
-epoch 19: 0.9924
-```
-
-Evaluation status:
-
-- Full validation for the new FCOS-lite model has not been run yet.
-- Training script is using `--eval-every 0`, but currently any value other than `1` means final validation runs after training completes.
-- No final AP50/precision/recall numbers exist yet for the new model.
-
-## 8. Remaining TODOs By Priority
-
-Priority 1:
-
-- Let 50-epoch training finish.
-- Verify final `outputs/runs/det_fcos_lite_50e/checkpoints/last.pt` and `best.pt`.
-- Run full validation:
+Stopped search:
 
 ```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/eval_det.py --data-root . --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt --device cuda --output-json outputs/runs/det_fcos_lite_50e/metrics/val_metrics.json
+kill -INT 3069730 3074315 3076632 3076798 3076868 3080276
 ```
 
-Priority 2:
+## Status
 
-- Generate annotation samples:
+- Training search is stopped.
+- Final presentation assets are generated, including the stricter high-threshold ByteTrack video.
+- README and report are updated for GitHub-style presentation.
+- Remaining GPU jobs shown by `nvidia-smi` belong to other users/processes and were not touched.
 
-```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/visualize_det.py --data-root . --split train --num-samples 12 --output-dir assets/annotations
-```
+## Remaining TODOs
 
-- Generate prediction images:
-
-```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/infer_images.py --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt --source datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-val/images --device cuda --output-dir assets/predictions
-```
-
-Priority 3:
-
-- Run VID tracking:
-
-```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/track_vid.py --data-root . --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt --split val --device cuda --max-frames 300 --output-dir assets/tracking
-```
-
-- Run benchmark:
-
-```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/benchmark.py --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt --img-size 640 --batch-size 1 --device cuda --output-json outputs/runs/det_fcos_lite_50e/metrics/benchmark.json
-```
-
-- Export ONNX:
-
-```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/export_onnx.py --weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt --img-size 640 --output outputs/runs/det_fcos_lite_50e/export/model.onnx
-```
-
-Priority 4:
-
-- Run optional YOLO comparison if `ultralytics` is installed:
-
-```bash
-source activate cat-sam && /home/mil/ruan/.pyenv/versions/anaconda3-2019.07/envs/cat-sam/bin/python scripts/yolo_compare.py --ours-weights outputs/runs/det_fcos_lite_50e/checkpoints/last.pt --yolo-weights yolov8n.pt --source datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-val/images --device cuda --output-dir assets/comparisons
-```
-
-- Update `report.md` with final metrics, qualitative notes, and output paths.
-- Consider adding a small gallery section to README after visual assets are generated.
-
-## 9. Important Warnings, Assumptions, And Dataset Paths
-
-Warnings:
-
-- Do not delete datasets, checkpoints, or previous outputs.
-- The active training job is still running. Do not start a second full training job until it finishes or is intentionally stopped.
-- `src/utils.py` from the legacy demo conflicts with a `src/utils/` package name. New shared helpers were moved to `src/common/` for this reason.
-- `scripts/train_det.py --eval-every 0` currently means no per-epoch validation callback; final validation is run only after training completes.
-- `requirements.txt` no longer includes `pandas`; new plotting code uses Python `csv`.
-- YOLO comparison is optional and depends on `ultralytics`; it is not a core dependency.
-- The new evaluator is simplified AP50/mAP50, not official VisDrone or COCO mAP.
-- The tracker is simple IoU tracking, not full SORT or ByteTrack.
-
-Assumptions:
-
-- `cat-sam` is the correct CUDA environment.
-- The full training command is allowed to continue.
-- Existing `yolov8n.pt` and `yolo26n.pt` are local baseline weights; no download is required.
-- The project should preserve the old CenterNet-style demo while adding the new GitHub-ready pipeline.
-
-Dataset paths:
-
-```text
-DET train images:
-datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-train/images
-
-DET train annotations:
-datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-train/annotations
-
-DET val images:
-datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-val/images
-
-DET val annotations:
-datasets/VisDrone/VisDrone-DET/VisDrone2019-DET-val/annotations
-
-VID train sequences:
-datasets/VisDrone/VisDrone-VID/VisDrone2019-VID-train/sequences
-
-VID train annotations:
-datasets/VisDrone/VisDrone-VID/VisDrone2019-VID-train/annotations
-
-VID val sequences:
-datasets/VisDrone/VisDrone-VID/VisDrone2019-VID-val/sequences
-
-VID val annotations:
-datasets/VisDrone/VisDrone-VID/VisDrone2019-VID-val/annotations
-```
-
+- Optional: add small compressed GIF/PNG thumbnails for GitHub if assets should be visible directly on GitHub.
+- Optional: run official VisDrone or COCO-style evaluation if official metrics are needed.
+- Optional: commit only code/docs/configs; keep datasets/checkpoints/videos out of Git unless explicitly desired.

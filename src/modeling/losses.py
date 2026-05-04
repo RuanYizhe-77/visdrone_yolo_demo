@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from src.common.boxes import generalized_box_iou
+from src.common.boxes import aligned_generalized_box_iou
 from .assigner import assign_fcos_targets, locations_for_features
 
 
@@ -32,13 +32,21 @@ def distances_to_boxes(locations, distances):
 
 
 class FCOSLoss:
-    def __init__(self, num_classes=10):
+    def __init__(self, num_classes=10, center_radius=1.5, regress_normalized=False):
         self.num_classes = num_classes
+        self.center_radius = float(center_radius)
+        self.regress_normalized = bool(regress_normalized)
 
     def __call__(self, outputs, targets, strides):
         logits, pred_reg, pred_center = flatten_outputs(outputs)
         locations, stride_tensor = locations_for_features(outputs["logits"], strides, logits.device)
-        labels, reg_targets, center_targets = assign_fcos_targets(locations, stride_tensor, targets, self.num_classes)
+        labels, reg_targets, center_targets = assign_fcos_targets(
+            locations,
+            stride_tensor,
+            targets,
+            self.num_classes,
+            center_radius=self.center_radius,
+        )
 
         pos = labels != self.num_classes
         num_pos = pos.sum().clamp(min=1).float()
@@ -51,9 +59,13 @@ class FCOSLoss:
 
         if pos.any():
             repeated_locations = locations[None].expand(logits.shape[0], -1, -1)
-            pred_boxes = distances_to_boxes(repeated_locations[pos], pred_reg[pos])
+            repeated_strides = stride_tensor[None].expand(logits.shape[0], -1)
+            pred_distances = pred_reg[pos]
+            if self.regress_normalized:
+                pred_distances = pred_distances * repeated_strides[pos][:, None]
+            pred_boxes = distances_to_boxes(repeated_locations[pos], pred_distances)
             target_boxes = distances_to_boxes(repeated_locations[pos], reg_targets[pos])
-            giou = generalized_box_iou(pred_boxes, target_boxes).diag()
+            giou = aligned_generalized_box_iou(pred_boxes, target_boxes)
             reg_loss = ((1.0 - giou) * center_targets[pos]).sum() / center_targets[pos].sum().clamp(min=1.0)
             center_loss = F.binary_cross_entropy_with_logits(pred_center[pos], center_targets[pos], reduction="sum") / num_pos
         else:

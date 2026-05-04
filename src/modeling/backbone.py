@@ -37,10 +37,11 @@ class BasicBlock(nn.Module):
 
 
 class SmallResNetBackbone(nn.Module):
-    """Readable ResNet-like backbone returning stride 8/16/32 features."""
+    """Readable ResNet-like backbone returning FPN features."""
 
-    def __init__(self, width=64):
+    def __init__(self, width=64, use_p2=False):
         super().__init__()
+        self.use_p2 = bool(use_p2)
         self.stem = nn.Sequential(
             ConvBNAct(3, width // 2, 3, stride=2),
             ConvBNAct(width // 2, width, 3, stride=2),
@@ -48,12 +49,13 @@ class SmallResNetBackbone(nn.Module):
         self.c3 = nn.Sequential(BasicBlock(width, width * 2, stride=2), BasicBlock(width * 2, width * 2))
         self.c4 = nn.Sequential(BasicBlock(width * 2, width * 4, stride=2), BasicBlock(width * 4, width * 4))
         self.c5 = nn.Sequential(BasicBlock(width * 4, width * 8, stride=2), BasicBlock(width * 8, width * 8))
-        self.out_channels = [width * 2, width * 4, width * 8]
+        self.out_channels = [width, width * 2, width * 4, width * 8] if self.use_p2 else [width * 2, width * 4, width * 8]
 
     def forward(self, x):
         x = self.stem(x)
         c3 = self.c3(x)
         c4 = self.c4(c3)
         c5 = self.c5(c4)
+        if self.use_p2:
+            return [x, c3, c4, c5]
         return [c3, c4, c5]
-

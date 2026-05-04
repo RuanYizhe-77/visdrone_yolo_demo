@@ -15,14 +15,26 @@ def locations_for_features(features, strides, device):
     return torch.cat(all_locations, dim=0), torch.cat(all_strides, dim=0)
 
 
+def _object_size_ranges(strides):
+    unique = sorted(int(s) for s in torch.unique(strides).detach().cpu().tolist())
+    if 4 in unique:
+        return {
+            4: (0, 64),
+            8: (32, 128),
+            16: (96, 256),
+            32: (192, torch.tensor(1e8, device=strides.device)),
+        }
+    return {
+        8: (0, 96),
+        16: (64, 192),
+        32: (128, torch.tensor(1e8, device=strides.device)),
+    }
+
+
 def assign_fcos_targets(locations, strides, targets, num_classes=10, center_radius=1.5):
     labels_out, reg_out, center_out = [], [], []
     inf = torch.tensor(1e8, device=locations.device)
-    ranges = {
-        8: (0, 96),
-        16: (64, 192),
-        32: (128, inf),
-    }
+    ranges = _object_size_ranges(strides)
     for target in targets:
         boxes = target["boxes"].to(locations.device)
         labels = target["labels"].to(locations.device)
@@ -77,4 +89,3 @@ def assign_fcos_targets(locations, strides, targets, num_classes=10, center_radi
         reg_out.append(reg_per)
         center_out.append(center_per)
     return torch.stack(labels_out), torch.stack(reg_out), torch.stack(center_out)
-

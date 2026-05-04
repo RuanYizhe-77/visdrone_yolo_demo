@@ -16,9 +16,22 @@ def main():
     p.add_argument("--img-size", type=int, default=640)
     p.add_argument("--output", default="outputs/runs/det_fcos_lite_50e/export/model.onnx")
     p.add_argument("--device", default="cpu")
+    p.add_argument("--width", type=int, default=64)
+    p.add_argument("--fpn-channels", type=int, default=160)
+    p.add_argument("--head-convs", type=int, default=3)
+    p.add_argument("--use-p2", action="store_true")
+    p.add_argument("--reg-activation", choices=["relu", "softplus"], default="relu")
+    p.add_argument("--regress-normalized", action="store_true")
     args = p.parse_args()
     device = args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
-    model = FCOSLiteDetector().to(device)
+    model = FCOSLiteDetector(
+        width=args.width,
+        fpn_channels=args.fpn_channels,
+        head_convs=args.head_convs,
+        use_p2=args.use_p2,
+        reg_activation=args.reg_activation,
+        regress_normalized=args.regress_normalized,
+    ).to(device)
     load_model_weights(model, args.weights, device)
     model.eval()
     dummy = torch.randn(1, 3, args.img_size, args.img_size, device=device)
@@ -30,6 +43,21 @@ def main():
             args.output,
             input_names=["images"],
             output_names=[
+                "p2_logits",
+                "p3_logits",
+                "p4_logits",
+                "p5_logits",
+                "p2_bbox",
+                "p3_bbox",
+                "p4_bbox",
+                "p5_bbox",
+                "p2_centerness",
+                "p3_centerness",
+                "p4_centerness",
+                "p5_centerness",
+            ]
+            if args.use_p2
+            else [
                 "p3_logits",
                 "p4_logits",
                 "p5_logits",

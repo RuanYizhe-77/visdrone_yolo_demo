@@ -21,7 +21,12 @@ def main():
     p.add_argument("--img-size", type=int, default=640)
     p.add_argument("--device", default="cuda")
     p.add_argument("--conf", type=float, default=0.25)
+    p.add_argument("--iou", type=float, default=0.5)
+    p.add_argument("--max-detections", type=int, default=80)
     p.add_argument("--output-dir", default="assets/comparisons")
+    p.add_argument("--width", type=int, default=64)
+    p.add_argument("--fpn-channels", type=int, default=160)
+    p.add_argument("--head-convs", type=int, default=3)
     args = p.parse_args()
     try:
         from ultralytics import YOLO
@@ -31,7 +36,7 @@ def main():
         return
 
     device = args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
-    ours = FCOSLiteDetector().to(device)
+    ours = FCOSLiteDetector(width=args.width, fpn_channels=args.fpn_channels, head_convs=args.head_convs).to(device)
     load_model_weights(ours, args.ours_weights, device)
     yolo = YOLO(args.yolo_weights)
     out_dir = Path(args.output_dir)
@@ -39,7 +44,7 @@ def main():
     sources = [Path(args.source)] if Path(args.source).is_file() else sorted(Path(args.source).glob("*.jpg"))
     for image_path in sources:
         image = cv2.imread(str(image_path))
-        own = predict_image(ours, image, args.img_size, device, args.conf)
+        own = predict_image(ours, image, args.img_size, device, args.conf, args.iou, args.max_detections)
         own_vis = draw_boxes(image, own["boxes"].numpy(), own["labels"].numpy(), own["scores"].numpy())
         result = yolo.predict(str(image_path), imgsz=args.img_size, conf=args.conf, verbose=False)[0]
         yolo_vis = result.plot()

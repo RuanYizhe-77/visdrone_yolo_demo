@@ -1,0 +1,26 @@
+[
+  {
+    "name": "newerbest_p2_small",
+    "weights": "outputs/runs/fcos_p2_small_softplus_norm_180e/checkpoints/best.pt",
+    "width": 64,
+    "fpn_channels": 160,
+    "head_convs": 3,
+    "tracker": "bytetrack",
+    "nms_mode": "classwise_then_agnostic",
+    "use_p2": true,
+    "reg_activation": "softplus",
+    "regress_normalized": true
+  },
+  {
+    "name": "oldest_50epoch",
+    "weights": "outputs/runs/det_fcos_lite_50e/checkpoints/last.pt",
+    "width": 64,
+    "fpn_channels": 160,
+    "head_convs": 3,
+    "tracker": "iou",
+    "nms_mode": "classwise_then_agnostic",
+    "use_p2": false,
+    "reg_activation": "relu",
+    "regress_normalized": false
+  }
+]

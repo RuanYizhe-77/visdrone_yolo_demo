@@ -20,9 +20,22 @@ def main():
     p.add_argument("--device", default="cuda")
     p.add_argument("--iters", type=int, default=50)
     p.add_argument("--output-json", default="outputs/runs/det_fcos_lite_50e/metrics/benchmark.json")
+    p.add_argument("--width", type=int, default=64)
+    p.add_argument("--fpn-channels", type=int, default=160)
+    p.add_argument("--head-convs", type=int, default=3)
+    p.add_argument("--use-p2", action="store_true")
+    p.add_argument("--reg-activation", choices=["relu", "softplus"], default="relu")
+    p.add_argument("--regress-normalized", action="store_true")
     args = p.parse_args()
     device = args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
-    model = FCOSLiteDetector().to(device)
+    model = FCOSLiteDetector(
+        width=args.width,
+        fpn_channels=args.fpn_channels,
+        head_convs=args.head_convs,
+        use_p2=args.use_p2,
+        reg_activation=args.reg_activation,
+        regress_normalized=args.regress_normalized,
+    ).to(device)
     if args.weights:
         load_model_weights(model, args.weights, device)
     metrics = benchmark_model(model, args.img_size, args.batch_size, device, iters=args.iters)

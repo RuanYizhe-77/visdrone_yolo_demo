@@ -11,9 +11,10 @@ class SimpleFPN(nn.Module):
         self.output = nn.ModuleList([ConvBNAct(out_ch, out_ch) for _ in in_channels])
 
     def forward(self, feats):
-        c3, c4, c5 = feats
-        p5 = self.lateral[2](c5)
-        p4 = self.lateral[1](c4) + F.interpolate(p5, size=c4.shape[-2:], mode="nearest")
-        p3 = self.lateral[0](c3) + F.interpolate(p4, size=c3.shape[-2:], mode="nearest")
-        return [self.output[0](p3), self.output[1](p4), self.output[2](p5)]
-
+        pyramid = [None for _ in feats]
+        last = self.lateral[-1](feats[-1])
+        pyramid[-1] = last
+        for idx in range(len(feats) - 2, -1, -1):
+            last = self.lateral[idx](feats[idx]) + F.interpolate(last, size=feats[idx].shape[-2:], mode="nearest")
+            pyramid[idx] = last
+        return [out(feat) for out, feat in zip(self.output, pyramid)]

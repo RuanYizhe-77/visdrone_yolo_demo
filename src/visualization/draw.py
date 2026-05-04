@@ -44,7 +44,18 @@ def make_side_by_side(left, right, left_title="ours", right_title="baseline"):
     canvas = np.zeros((h, w, 3), dtype=np.uint8)
     canvas[: left.shape[0], : left.shape[1]] = left
     canvas[: right.shape[0], left.shape[1] :] = right
-    cv2.putText(canvas, left_title, (12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
-    cv2.putText(canvas, right_title, (left.shape[1] + 12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+    _draw_panel_title(canvas, left_title, 0, left.shape[1])
+    _draw_panel_title(canvas, right_title, left.shape[1], right.shape[1])
     return canvas
 
+
+def _draw_panel_title(canvas, title, x, panel_width):
+    label = title.replace("_", " ")
+    cv2.rectangle(canvas, (x, 0), (x + panel_width, 44), (0, 0, 0), -1)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    scale = 0.78
+    thickness = 2
+    (tw, _), _ = cv2.getTextSize(label, font, scale, thickness)
+    if tw > panel_width - 24:
+        scale = max(0.48, scale * (panel_width - 24) / max(tw, 1))
+    cv2.putText(canvas, label, (x + 12, 30), font, scale, (0, 255, 255), thickness, cv2.LINE_AA)
