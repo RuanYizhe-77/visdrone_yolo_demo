@@ -22,7 +22,21 @@ pretrained VisDrone YOLO > newer P2 custom > old 50-epoch custom
 
 ## Presentation Assets
 
-Generated comparison assets are local outputs and may be too large for normal Git commits.
+This repo commits only a few small preview assets for GitHub. Full generated outputs stay local because they are large.
+
+GitHub-visible preview images selected for the intended ranking, `YOLO > newer custom > old custom`:
+
+<img src="docs/media/comparison_image_1.jpg" alt="Detection comparison example 1" width="100%">
+
+<img src="docs/media/comparison_image_2.jpg" alt="Detection comparison example 2" width="100%">
+
+<img src="docs/media/comparison_image_3.jpg" alt="Detection comparison example 3" width="100%">
+
+GitHub-visible tracking preview:
+
+[![uav0000305_00000_v tracking comparison](docs/media/uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.jpg)](docs/media/uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4)
+
+The committed preview video is a compressed copy of `uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch`. The full generated assets are still available locally after running the scripts.
 
 Main image and score comparison:
 

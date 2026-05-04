@@ -24,6 +24,10 @@ weights/
 *.mov
 *.mkv
 
+# Curated small media committed for GitHub README preview
+!docs/media/
+!docs/media/**
+
 # System/editor
 .DS_Store
 .vscode/
