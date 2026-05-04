@@ -22,9 +22,9 @@ pretrained VisDrone YOLO > newer P2 custom > old 50-epoch custom
 
 ## Presentation Assets
 
-This repo commits only a few small preview assets for GitHub. Full generated outputs stay local because they are large.
+This repo commits a curated GitHub preview set: three clear comparison images and one tracking video. The full generated output folders stay local because they are large.
 
-GitHub-visible preview images selected for the intended ranking, `YOLO > newer custom > old custom`:
+GitHub-visible comparison images selected for the intended ranking, `YOLO > newer custom > old custom`:
 
 <img src="docs/media/comparison_image_1.jpg" alt="Detection comparison example 1" width="100%">
 
@@ -32,24 +32,23 @@ GitHub-visible preview images selected for the intended ranking, `YOLO > newer c
 
 <img src="docs/media/comparison_image_3.jpg" alt="Detection comparison example 3" width="100%">
 
-GitHub-visible tracking preview:
+GitHub-visible tracking video:
 
 [![uav0000305_00000_v tracking comparison](docs/media/uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.jpg)](docs/media/uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4)
 
-The committed preview video is a compressed copy of `uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch`. The full generated assets are still available locally after running the scripts.
+Direct video file: [uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4](docs/media/uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4)
 
-Main image and score comparison:
+This committed video is the full high-threshold `uav0000305_00000_v` comparison. If GitHub does not inline-play it in the README, click the thumbnail or direct file link.
 
-- Report: [assets/current_yolo_newerbest_oldest/comparison_report.md](assets/current_yolo_newerbest_oldest/comparison_report.md)
-- Scores: [assets/current_yolo_newerbest_oldest/scores/metrics_summary.csv](assets/current_yolo_newerbest_oldest/scores/metrics_summary.csv)
-- Full validation image grids: [assets/current_yolo_newerbest_oldest/images](assets/current_yolo_newerbest_oldest/images)
+Local-only full outputs after running the scripts:
 
-Clear tracking-strategy videos:
-
-- Easier sequence, lowest density: [uav0000268_05773_v comparison](assets/presentation_tracking_comparison/tracking/uav0000268_05773_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4)
-- Easier sequence, later segment: [uav0000268_05773_v later comparison](assets/presentation_tracking_comparison_uav0000268_late/tracking/uav0000268_05773_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4)
-- Second easier sequence: [uav0000305_00000_v comparison](assets/presentation_tracking_comparison_uav0000305/tracking/uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4)
-- Recommended stricter ByteTrack version: [uav0000305_00000_v high-threshold comparison](assets/presentation_tracking_comparison_uav0000305_highthr/tracking/uav0000305_00000_v_pretrained_yolo_vs_newerbest_p2_small_vs_oldest_50epoch.mp4)
+```text
+assets/current_yolo_newerbest_oldest/
+assets/presentation_tracking_comparison/
+assets/presentation_tracking_comparison_uav0000268_late/
+assets/presentation_tracking_comparison_uav0000305/
+assets/presentation_tracking_comparison_uav0000305_highthr/
+```
 
 These videos use high-contrast panel labels:
 
